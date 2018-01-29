@@ -1,8 +1,6 @@
 local component = require ( "system/apis/component" )
 
-local stargate = {}
-
-function connect ( address )
+local function connect ( address )
 
 	if address then 
 		if component.proxy( address ) then
@@ -14,16 +12,16 @@ function connect ( address )
 		local self = { sg = component.stargate }
 	end
 	
-	hasIris = function ()
+	local hasIris = function ()
 		return self.sg.irisState () == 'Offline' and false or true
 	end
 
-	getState = function( )
+	local getState = function( )
 		local status = { self.sg.stargateState () }
 		return status[1] == 'Offline' and false or state:lower(), status[2], status[3] == 'Incoming' and 'in' or status[3] == 'Outgoing' and 'out' or false
 	end
 
-	getIrisState = function ( )
+	local getIrisState = function ( )
 		if hasIris then
 			return self.sg.irisState():lower()
 		else
@@ -31,28 +29,28 @@ function connect ( address )
 		end
 	end
 
-	getAdress = function ()
+	local getAdress = function ()
 		return self.sg.localAddress ()
 	end
 
-	getUCID = function ()
+	local getUCID = function ()
 		return self.sg.address
 	end
 
-	getConnection = function ()
+	local getConnection = function ()
 		if getState () == 'idle' or getState () == 'offline' then return false end
 		return self.sg.remoteAddress ()
 	end
 
-	getStoredEnergy = function ()
+	local getStoredEnergy = function ()
 		return self.sg.energyAvailable () * 80
 	end
 
-	getRequiredEnergy = function ( address )
+	local getRequiredEnergy = function ( address )
 		return address and self.sg.energyToDial ( address ) or false
 	end
 
-	dial = function( address )
+	local dial = function( address )
 		if address and getRequiredEnergy ( address ) then
 			if getStoredEnergy () >= getRequiredEnergy ( address ) then
 				self.sg.dial ( address )
@@ -62,12 +60,12 @@ function connect ( address )
 		return false
 	end
 
-	shutdown = function ()
+	local shutdown = function ()
 		self.sg.disconnect()
 		return true
 	end
 
-	setIris = function ( bool )
+	local setIris = function ( bool )
 		if hasIris () then
 			local status = self.sg.irisState ():lower ()
 			if status == 'opening' or status == 'open' and bool == false then
@@ -94,3 +92,5 @@ function connect ( address )
 	setIris = setIris
 	}
 end
+
+return { connect = connect }
