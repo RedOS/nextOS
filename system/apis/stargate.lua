@@ -1,84 +1,96 @@
 local component = require ( "system/apis/component" )
 
+local stargate = {}
+
 function connect ( address )
 
 	if address then 
 		if component.proxy( address ) then
 			if component.type( address ) == 'stargate' then
-				local sg = component.proxy( address )
+				local self = { sg = component.proxy( address ) }
 			end
 		end
 	else
-		local sg = component.stargate
+		local self = { sg = component.stargate }
 	end
 	
-	local stargate = {}
-
-	stargate.hasIris = function ()
-		return sg.irisState () == 'Offline' and false or true
+	hasIris = function ()
+		return self.sg.irisState () == 'Offline' and false or true
 	end
 
-	stargate.getState = function()
-		local status = { sg.stargateState () }
+	getState = function( )
+		local status = { self.sg.stargateState () }
 		return status[1] == 'Offline' and false or state:lower(), status[2], status[3] == 'Incoming' and 'in' or status[3] == 'Outgoing' and 'out' or false
 	end
 
-	stargate.getIrisState = function ()
-		if stargate.hasIris then
-			return sg.irisState():lower()
+	getIrisState = function ( )
+		if hasIris then
+			return self.sg.irisState():lower()
 		else
 			return false
 		end
 	end
 
-	stargate.getAdress = function ()
-		return sg.localAddress ()
-	end
-	
-	stargate.getUCID = function ()
-		return sg.address
+	getAdress = function ()
+		return self.sg.localAddress ()
 	end
 
-	stargate.getConnection = function ()
-		if stargate.getState () == 'idle' or stargate.getState () == 'offline' then return false end
-		return sg.remoteAddress ()
+	getUCID = function ()
+		return self.sg.address
 	end
 
-	stargate.getStoredEnergy = function ()
-		return sg.energyAvailable () * 80
+	getConnection = function ()
+		if getState () == 'idle' or getState () == 'offline' then return false end
+		return self.sg.remoteAddress ()
 	end
-	
-	stargate.getRequiredEnergy = function ( address )
-		return address and sg.energyToDial ( address ) or false
+
+	getStoredEnergy = function ()
+		return self.sg.energyAvailable () * 80
 	end
-	
-	stargate.dial = function( address )
-		if address and stargate.getRequiredEnergy ( address ) then
-			if stargate.getStoredEnergy () >= stargate.getRequiredEnergy ( address )
-				sg.dial ( address )
+
+	getRequiredEnergy = function ( address )
+		return address and self.sg.energyToDial ( address ) or false
+	end
+
+	dial = function( address )
+		if address and getRequiredEnergy ( address ) then
+			if getStoredEnergy () >= getRequiredEnergy ( address ) then
+				self.sg.dial ( address )
 				return true
 			end
 		end
 		return false
 	end
-	
-	stargate.shutdown = function ()
-		sg.disconnect()
+
+	shutdown = function ()
+		self.sg.disconnect()
 		return true
 	end
-	
-	stargate.setIris( bool )
-		if stargate.hasIris () then
-			local status = sg.irisState ():lower ()
+
+	setIris = function ( bool )
+		if hasIris () then
+			local status = self.sg.irisState ():lower ()
 			if status == 'opening' or status == 'open' and bool == false then
-				sg.closeIris ()
+				self.sg.closeIris ()
 			elseif status == 'closing' or status == 'closed' and bool == true then
-				sg.openIris ()
+				self.sg.openIris ()
 			end
 			return true
 		end
 		return false
 	end
 	
-	return sg and stargate or false
+	return {
+	hasIris = hasIris,
+	getState = getState,
+	getIrisState = getIrisState,
+	getAddress = getAddress,
+	getUCID = getUCID,
+	getConnection = getConnection,
+	getStoredEnergy = getStoredEnergy,
+	getRequiredEnergy = getRequiredEnergy,
+	dial = dial,
+	shutdown = shutdown,
+	setIris = setIris
+	}
 end

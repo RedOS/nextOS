@@ -13,10 +13,11 @@ function unpack (tab, i)
 	end
 end
 
-local screen = { gpu = component.gpu,
-maxWidth = function () return ( { screen.gpu.getResolution() } )[1] end,
-maxHeight = function () return ( { screen.gpu.getResolution() } )[2] end,
-resolution = function() return screen.gpu.getResolution() end, }
+local maxWidth, maxHeight =  ( { component.gpu.getResolution() } )[2]
+
+local screen = { resolution = function() return component.gpu.getResolution() end,
+	maxWidth = function () return ( { component.gpu.getResolution() } )[1] end,
+	maxHeight = function () return ( { component.gpu.getResolution() } )[2] end, }
 
 local native = {
 	window = { child = {}, childcount = 0, hasColors = ( component.gpu.getDepth() > 1 and true or false ) },
@@ -50,15 +51,15 @@ screen.native = {
 	blit = function ( text, foreground, background, fast )
 		str, fg, bg = text, foreground, background
 		local aX, aY = ( native.x + native.cursorX - 1 ), ( native.y + native.cursorY - 1 )
-		if ( aY <= screen.maxHeight() ) and ( aY > 0 ) and ( cursorY  <= native.height ) then
+		if ( aY <= screen.maxHeight() ) and ( aY > 0 ) and ( native.cursorY  <= native.height ) then
 			local n = 1
-			while n < math.min ( #str, native.width ) do
+			while n < math.min ( #str, native.width, screen.maxWidth() ) do
 				local p = ( n - 1 ) * 6 + 1
 				if fast then
 					fg_color, bg_color = fg:sub( p, n * 6 ), bg:sub( p, n * 6 )
-					if ( last_fg ~= fg_color ) then screen.gpu.setForeground( tonumber ( fg_color, 16 ) ) end
-					if ( last_bg ~= bg_color ) then screen.gpu.setBackground( tonumber ( bg_color, 16 ) ) end
-					ok = screen.gpu.set ( aX + n - 1, aY, str:sub( n, n ) )
+					if ( last_fg ~= fg_color ) then component.gpu.setForeground( tonumber ( fg_color, 16 ) ) end
+					if ( last_bg ~= bg_color ) then component.gpu.setBackground( tonumber ( bg_color, 16 ) ) end
+					ok = component.gpu.set ( aX + n - 1, aY, str:sub( n, n ) )
 					n = n + 1
 					local last_fg = fg_color
 					local last_bg = bg_color
@@ -68,9 +69,9 @@ screen.native = {
 					local l_bg = bg:sub ( p, #bg ):match ( '[' .. bg_color .. ']+' )
 					local l_str = str:sub ( n, #str ):match ( str:sub( n, n ) .. '+' )
 					local length = math.min ( #l_fg/6, #l_bg/6, #l_str )
-					if ( last_fg ~= fg_color ) then screen.gpu.setForeground( tonumber ( fg_color, 16 ) ) end
-					if ( last_bg ~= bg_color ) then screen.gpu.setBackground( tonumber ( bg_color, 16 ) ) end
-					ok = screen.gpu.fill ( aX + n - 1, aY, length, 1, str:sub( n, n ) )
+					if ( last_fg ~= fg_color ) then component.gpu.setForeground( tonumber ( fg_color, 16 ) ) end
+					if ( last_bg ~= bg_color ) then component.gpu.setBackground( tonumber ( bg_color, 16 ) ) end
+					ok = component.gpu.fill ( aX + n - 1, aY, length, 1, str:sub( n, n ) )
 					n = n + length
 					local last_fg = fg_color
 					local last_bg = bg_color
@@ -81,8 +82,11 @@ screen.native = {
 		end
 		return false
 	end,
+	getPosition = function ()
+		return native.x, native.y
+	end,
 	setCursor = function ( new_x, new_y )
-		native.cursorX, native.cursorY = native.x - 1 + x - 1 + math.floor ( new_x ), native.y - 1 + y - 1 + math.floor( new_y )
+		native.cursorX, native.cursorY = native.x - 1 + math.floor ( new_x ), native.y - 1 + math.floor( new_y )
 	end,
 	setCursorBlink = function ( blink )
 		native.cursorBlink = blink and true or false
